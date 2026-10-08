@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 
 BIN="$HOME/.local/bin/taptotidy"
 DESKTOP="$HOME/.local/share/applications/dev.taptotidy.desktop"
-ICON="$HOME/.local/share/icons/hicolor/256x256/apps/dev.taptotidy.png"
+ICON="$HOME/.local/share/icons/hicolor/256x256/apps/dev.logo.svg"
 
 if [ "${1:-}" = "--uninstall" ]; then
   if [ -x "$BIN" ]; then "$BIN" uninstall; fi  # removes the GNOME shortcuts
@@ -33,7 +33,7 @@ install -Dm755 src/taptotidy.py "$BIN"
 mkdir -p "$(dirname "$ICON")" "$(dirname "$DESKTOP")"
 python3 -c 'import sys, gi; gi.require_version("GdkPixbuf", "2.0"); from gi.repository import GdkPixbuf
 GdkPixbuf.Pixbuf.new_from_file_at_size(sys.argv[1], 256, 256).savev(sys.argv[2], "png", [], [])' \
-  assets/taptotidy.png "$ICON"
+  assets/logo.svg "$ICON"
 # absolute Icon= path: a stale icon-theme.cache from another app can hide name-based lookups
 cat > "$DESKTOP" <<EOF
 [Desktop Entry]
