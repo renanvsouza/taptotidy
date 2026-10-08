@@ -65,12 +65,18 @@ def save_config(backend, model, prompts):
         json.dump({"backend": backend, "model": model, "prompts": custom}, f, indent=2)
 
 
-def command(backend, model, prompt):
+# The selected text is untrusted (e.g. someone else's Slack message), so the model gets no usable tools.
+# opencode: free models reject configs that remove tools, so every plan-agent permission is set to "ask",
+# which `opencode run` auto-rejects (verified for webfetch and file reads).
+OPENCODE_LOCKDOWN = json.dumps({"agent": {"plan": {"permission": {"*": "ask"}}}})
+
+
+def command(backend, model):
+    """argv for the backend; the prompt goes on stdin (keeps it out of `ps` and avoids argv size limits)."""
     if backend == "claude":
-        return ["claude", "-p", "--model", model, "--tools", "", "--no-session-persistence", prompt]
-    # free models reject configs that strip tools, so use the plan agent without --auto:
-    # shell/edit permissions are auto-rejected; read tools remain. Use claude backend for zero tools.
-    return ["opencode", "run", "--pure", "--agent", "plan", "--format", "json", "-m", model, prompt]
+        # --tools "" drops built-in tools; --strict-mcp-config drops the user's MCP servers too
+        return ["claude", "-p", "--model", model, "--tools", "", "--strict-mcp-config", "--no-session-persistence"]
+    return ["opencode", "run", "--pure", "--agent", "plan", "--format", "json", "-m", model]
 
 
 def parse(backend, out):
@@ -196,18 +202,24 @@ class Popup(Gtk.ApplicationWindow):
         cfg = load_config()
         self.backend, model = cfg["backend"], cfg["model"]
         self.status.set_label(f"Thinking ({model})…")
-        launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE)
+        launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.STDIN_PIPE | Gio.SubprocessFlags.STDOUT_PIPE
+                                              | Gio.SubprocessFlags.STDERR_PIPE)
         launcher.set_cwd(WORKDIR.name)
+        launcher.setenv("OPENCODE_CONFIG_CONTENT", OPENCODE_LOCKDOWN, True)
         try:
-            proc = launcher.spawnv(command(self.backend, model, cfg["prompts"][self.mode] + RULES.format(text)))
+            proc = launcher.spawnv(command(self.backend, model))
         except GLib.Error as e:
             self.status.set_label(f"Couldn't run {self.backend} ({e.message}).\n"
                                   "Install it, or pick another backend in Settings (gear icon).")
             return
-        proc.communicate_utf8_async(None, None, self.on_done)
+        proc.communicate_utf8_async(cfg["prompts"][self.mode] + RULES.format(text), None, self.on_done)
 
     def on_done(self, proc, res):
         _, out, err = proc.communicate_utf8_finish(res)
+        session = re.search(r'"sessionID":"(ses_\w+)"', out or "")
+        if session:  # opencode keeps every session (with the selected text) on disk; drop ours
+            Gio.Subprocess.new(["opencode", "session", "delete", session[1]],
+                               Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE)
         answer = parse(self.backend, out or "")
         if not proc.get_successful() or not answer:
             last = (err or out or "no output").strip().splitlines()[-1:] or ["no output"]

@@ -6,6 +6,10 @@ Press Enter to copy it, then Ctrl+V to replace the still-highlighted text.
 Requires Ubuntu/GNOME on Wayland and either [Claude Code](https://claude.com/claude-code)
 (`claude`) or [opencode](https://opencode.ai) (`opencode`), installed and logged in.
 
+**Privacy:** whatever you highlight is sent to the model provider you pick (Anthropic for `claude`,
+the model's host for `opencode`; free opencode models may log or train on it). Don't use it on secrets.
+The model runs with all tools disabled, so text you highlight can't make it read files or fetch URLs.
+
 ## Install
 
 ```bash
