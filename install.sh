@@ -29,11 +29,11 @@ if ! command -v claude >/dev/null && ! command -v opencode >/dev/null; then
   echo "Warning: neither 'claude' (Claude Code) nor 'opencode' found. TapToTidy needs one of them, logged in."
 fi
 
-install -Dm755 taptotidy.py "$BIN"
+install -Dm755 src/taptotidy.py "$BIN"
 mkdir -p "$(dirname "$ICON")" "$(dirname "$DESKTOP")"
 python3 -c 'import sys, gi; gi.require_version("GdkPixbuf", "2.0"); from gi.repository import GdkPixbuf
 GdkPixbuf.Pixbuf.new_from_file_at_size(sys.argv[1], 256, 256).savev(sys.argv[2], "png", [], [])' \
-  tap_to_tidy.png "$ICON"
+  assets/taptotidy.png "$ICON"
 # absolute Icon= path: a stale icon-theme.cache from another app can hide name-based lookups
 cat > "$DESKTOP" <<EOF
 [Desktop Entry]
