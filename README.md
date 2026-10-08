@@ -1,7 +1,12 @@
 # TapToTidy
 
-Highlight text in any app (Slack, Chrome, …), press a shortcut, get an AI rewrite in a popup.
-Press Enter to copy it, then Ctrl+V to replace the still-highlighted text.
+You wrote a Slack message. It's... fine. Mostly. TapToTidy makes it better.
+
+Highlight any text (Slack, Chrome, wherever), tap a shortcut, and a little popup hands you a
+tidied-up version. Press Enter to copy it, Ctrl+V to swap it in. Your coworkers will never know.
+
+> 🎶 **Proudly vibecoded.** This app was built by chatting with an AI until it worked.
+> It's a toy that works on my machine and hopefully yours. Expect charm, not guarantees.
 
 Requires Ubuntu/GNOME on Wayland and either [Claude Code](https://claude.com/claude-code)
 (`claude`) or [opencode](https://opencode.ai) (`opencode`), installed and logged in.
