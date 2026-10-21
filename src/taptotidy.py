@@ -67,8 +67,14 @@ def save_config(backend, model, prompts):
 
 # The selected text is untrusted (e.g. someone else's Slack message), so the model gets no usable tools.
 # opencode: free models reject configs that remove tools, so every plan-agent permission is set to "ask",
-# which `opencode run` auto-rejects (verified for webfetch and file reads).
-OPENCODE_LOCKDOWN = json.dumps({"agent": {"plan": {"permission": {"*": "ask"}}}})
+# which `opencode run` auto-rejects (verified for webfetch and file reads). Plugins and MCP servers are
+# denied by policy so they can't add tools. opencode 2.0 removed --pure and OPENCODE_CONFIG_CONTENT,
+# so the lockdown is written as opencode.json into the (otherwise empty) working directory.
+OPENCODE_LOCKDOWN = {"agents": {"plan": {"permissions": [{"action": "*", "resource": "*", "effect": "ask"}]}},
+                     "policies": [{"action": "integration.use", "resource": r, "effect": "deny"}
+                                  for r in ("plugin:*", "mcp:*")]}
+with open(os.path.join(WORKDIR.name, "opencode.json"), "w") as f:
+    json.dump(OPENCODE_LOCKDOWN, f)
 
 
 def command(backend, model):
@@ -76,7 +82,7 @@ def command(backend, model):
     if backend == "claude":
         # --tools "" drops built-in tools; --strict-mcp-config drops the user's MCP servers too
         return ["claude", "-p", "--model", model, "--tools", "", "--strict-mcp-config", "--no-session-persistence"]
-    return ["opencode", "run", "--pure", "--agent", "plan", "--format", "json", "-m", model]
+    return ["opencode", "run", "--agent", "plan", "--format", "json", "-m", model]
 
 
 def parse(backend, out):
@@ -205,7 +211,6 @@ class Popup(Gtk.ApplicationWindow):
         launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.STDIN_PIPE | Gio.SubprocessFlags.STDOUT_PIPE
                                               | Gio.SubprocessFlags.STDERR_PIPE)
         launcher.set_cwd(WORKDIR.name)
-        launcher.setenv("OPENCODE_CONFIG_CONTENT", OPENCODE_LOCKDOWN, True)
         try:
             proc = launcher.spawnv(command(self.backend, model))
         except GLib.Error as e:
