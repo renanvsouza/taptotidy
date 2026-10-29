@@ -1,0 +1,47 @@
+name: release
+
+# Push a tag like v0.1.0 and this builds the .deb and attaches it to a GitHub release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  deb:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      # taptotidy itself needs no build, but build-deb.sh rasterizes the icon with gdk-pixbuf.
+      - name: Install packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi gir1.2-gdkpixbuf-2.0 librsvg2-common
+
+      - name: Build package
+        id: deb
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          ./build-deb.sh "$version"
+          echo "path=dist/taptotidy_${version}_all.deb" >> "$GITHUB_OUTPUT"
+
+      - name: Sanity-check the package
+        run: |
+          deb='${{ steps.deb.outputs.path }}'
+          dpkg-deb --info "$deb"
+          dpkg-deb -c "$deb"
+          test "$(dpkg-deb -f "$deb" Architecture)" = all
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          deb='${{ steps.deb.outputs.path }}'
+          # Also publish a version-less name so .../releases/latest/download/taptotidy_all.deb is stable.
+          cp "$deb" dist/taptotidy_all.deb
+          gh release view "$tag" >/dev/null 2>&1 \
+            || gh release create "$tag" --title "$tag" --generate-notes
+          gh release upload "$tag" "$deb" dist/taptotidy_all.deb --clobber

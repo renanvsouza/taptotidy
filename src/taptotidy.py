@@ -3,7 +3,7 @@
 
   taptotidy [clarity|fix]   popup for the current selection (bound to GNOME shortcuts)
   taptotidy settings        pick backend/model, prompts and shortcuts (app grid entry)
-  taptotidy uninstall       remove the GNOME shortcuts (used by install.sh --uninstall)
+  taptotidy uninstall       remove the GNOME shortcuts (run before removing the package)
 
 Popup: edit the suggestion if you like, Enter = copy & close (then Ctrl+V
 replaces the still-highlighted text), Esc = dismiss.
